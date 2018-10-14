@@ -68,15 +68,32 @@ class TestConfigGenerator(test.SimpleTestCase):
             expand_db_url('sqlite://')
 
     def test_postgres_basic(self):
-        res = expand_db_url('postgres://postgres:@127.0.0.1:5432/test')
+        res = expand_db_url('postgres://postgres:moo@127.0.0.1:54321/test')
+        self.assertDictEqual(res, {
+            'engine': 'tortoise.backends.asyncpg',
+            'credentials': {
+                'database': 'test',
+                'host': '127.0.0.1',
+                'password': 'moo',
+                'port': 54321,
+                'user': 'postgres',
+                'min_size': 1,
+                'max_size': 5,
+            }
+        })
+
+    def test_postgres_no_port(self):
+        res = expand_db_url('postgres://postgres@127.0.0.1/test')
         self.assertDictEqual(res, {
             'engine': 'tortoise.backends.asyncpg',
             'credentials': {
                 'database': 'test',
                 'host': '127.0.0.1',
                 'password': '',
-                'port': '5432',
+                'port': 5432,
                 'user': 'postgres',
+                'min_size': 1,
+                'max_size': 5,
             }
         })
 
@@ -98,36 +115,58 @@ class TestConfigGenerator(test.SimpleTestCase):
                 'database': database,
                 'host': '127.0.0.1',
                 'password': '',
-                'port': '5432',
+                'port': 5432,
                 'user': 'postgres',
+                'min_size': 1,
+                'max_size': 5,
             }
         })
 
     def test_postgres_params(self):
-        res = expand_db_url('postgres://postgres:@127.0.0.1:5432/test?AHA=5&moo=yes')
+        res = expand_db_url('postgres://postgres:@127.0.0.1:5432/test?AHA=5&moo=yes&max_size=20'
+                            '&min_size=5')
         self.assertDictEqual(res, {
             'engine': 'tortoise.backends.asyncpg',
             'credentials': {
                 'database': 'test',
                 'host': '127.0.0.1',
                 'password': '',
-                'port': '5432',
+                'port': 5432,
                 'user': 'postgres',
                 'AHA': '5',
                 'moo': 'yes',
+                'min_size': 5,
+                'max_size': 20,
             }
         })
 
     def test_mysql_basic(self):
-        res = expand_db_url('mysql://root:@127.0.0.1:3306/test')
+        res = expand_db_url('mysql://root:@127.0.0.1:33060/test')
         self.assertEqual(res, {
             'engine': 'tortoise.backends.mysql',
             'credentials': {
                 'database': 'test',
                 'host': '127.0.0.1',
                 'password': '',
-                'port': '3306',
+                'port': 33060,
                 'user': 'root',
+                'minsize': 1,
+                'maxsize': 5,
+            }
+        })
+
+    def test_mysql_no_port(self):
+        res = expand_db_url('mysql://root@127.0.0.1/test')
+        self.assertEqual(res, {
+            'engine': 'tortoise.backends.mysql',
+            'credentials': {
+                'database': 'test',
+                'host': '127.0.0.1',
+                'password': '',
+                'port': 3306,
+                'user': 'root',
+                'minsize': 1,
+                'maxsize': 5,
             }
         })
 
@@ -145,23 +184,30 @@ class TestConfigGenerator(test.SimpleTestCase):
                 'database': res['credentials']['database'],
                 'host': '127.0.0.1',
                 'password': '',
-                'port': '3306',
+                'port': 3306,
                 'user': 'root',
+                'minsize': 1,
+                'maxsize': 5,
             }
         })
 
     def test_mysql_params(self):
-        res = expand_db_url('mysql://root:@127.0.0.1:3306/test?AHA=5&moo=yes')
+        res = expand_db_url('mysql://root:@127.0.0.1:3306/test?AHA=5&moo=yes&maxsize=20&minsize=5'
+                            '&connect_timeout=1.5&echo=1')
         self.assertEqual(res, {
             'engine': 'tortoise.backends.mysql',
             'credentials': {
                 'database': 'test',
                 'host': '127.0.0.1',
                 'password': '',
-                'port': '3306',
+                'port': 3306,
                 'user': 'root',
                 'AHA': '5',
                 'moo': 'yes',
+                'minsize': 5,
+                'maxsize': 20,
+                'connect_timeout': 1.5,
+                'echo': True
             }
         })
 
