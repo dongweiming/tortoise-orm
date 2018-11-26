@@ -10,7 +10,7 @@ aiomysql==0.0.19
 aiosqlite==0.8.0
 alabaster==0.7.12         # via sphinx
 asn1crypto==0.24.0        # via cryptography
-astroid==2.0.4            # via pylint
+astroid==2.1.0            # via pylint
 asyncpg==0.18.2
 asynctest==0.12.2
 atomicwrites==1.2.1       # via pytest
@@ -23,10 +23,10 @@ chardet==3.0.4            # via requests
 ciso8601==2.1.1
 click==7.0                # via pip-tools
 cloud-sptheme==1.9.4
-colorama==0.4.0           # via green
+colorama==0.4.1           # via green
 coverage==4.5.2           # via coveralls, green, nose2
 coveralls==1.5.1
-cryptography==2.4.1       # via pymysql
+cryptography==2.4.2       # via pymysql
 docopt==0.6.2             # via coveralls
 docutils==0.14
 filelock==3.0.10          # via tox
@@ -54,12 +54,12 @@ py==1.7.0                 # via pytest, tox
 pycodestyle==2.4.0        # via flake8
 pycparser==2.19           # via cffi
 pyflakes==2.0.0           # via flake8
-pygments==2.2.0
-pylint==2.1.1
+pygments==2.3.0
+pylint==2.2.0
 pymysql==0.9.2            # via aiomysql
 pyparsing==2.3.0          # via packaging
 pypika==0.18.3
-pytest==4.0.0
+pytest==4.0.1
 pytz==2018.7              # via babel
 pyyaml==3.13
 requests==2.20.1          # via coveralls, sphinx
@@ -79,4 +79,4 @@ unidecode==1.0.23         # via green
 urllib3==1.24.1           # via requests
 virtualenv==16.1.0        # via tox
 wrapt==1.10.11            # via astroid
-yapf==0.24.0
+yapf==0.25.0

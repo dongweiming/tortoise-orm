@@ -12,9 +12,9 @@ asn1crypto==0.24.0        # via cryptography
 asynctest==0.12.2
 cffi==1.11.5              # via cryptography
 ciso8601==2.1.1
-colorama==0.4.0           # via green
+colorama==0.4.1           # via green
 coverage==4.5.2           # via green
-cryptography==2.4.1       # via pymysql
+cryptography==2.4.2       # via pymysql
 green==2.13.0
 idna==2.7                 # via cryptography
 pycparser==2.19           # via cffi

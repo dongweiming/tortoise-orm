@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.10.12
+-------
+- More type annotations for easier auto-completion
+- Removed known broken connection pooling
+
 0.10.11
 -------
 - Pre-build some query & filters statically, 15-30% speed up for smaller queries.
