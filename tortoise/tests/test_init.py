@@ -108,7 +108,7 @@ class TestInitErrors(test.SimpleTestCase):
 
     async def test_url_without_modules(self):
         with self.assertRaisesRegex(ConfigurationError,
-                                     'You must specify "db_url" and "modules" together'):
+                                    'You must specify "db_url" and "modules" together'):
             await Tortoise.init(
                 db_url="sqlite://{}".format(":memory:"),
             )

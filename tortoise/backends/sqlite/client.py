@@ -99,8 +99,8 @@ class TransactionWrapper(SqliteClient, BaseTransactionWrapper):
         self._connection = connection  # type: aiosqlite.Connection
         self.log = logging.getLogger('db_client')
         self._transaction_class = self.__class__
-        self._old_context_value = None
         self._finalized = False
+        self._token = None
 
     async def start(self) -> None:
         try:
@@ -108,20 +108,21 @@ class TransactionWrapper(SqliteClient, BaseTransactionWrapper):
             await self._connection.execute('BEGIN')
         except sqlite3.OperationalError as exc:  # pragma: nocoverage
             raise TransactionManagementError(exc)
-        current_transaction = current_transaction_map[self.connection_name]
-        self._old_context_value = current_transaction.get()
-        current_transaction.set(self)
+        self.log.debug('context set to %s', self)
+        self._token = current_transaction_map[self.connection_name].set(self)
 
     async def rollback(self) -> None:
         if self._finalized:
             raise TransactionManagementError('Transaction already finalised')
         self._finalized = True
         await self._connection.rollback()
-        current_transaction_map[self.connection_name].set(self._old_context_value)
+        current_transaction_map[self.connection_name].reset(self._token)
+        self.log.debug('context reset')
 
     async def commit(self) -> None:
         if self._finalized:
             raise TransactionManagementError('Transaction already finalised')
         self._finalized = True
         await self._connection.commit()
-        current_transaction_map[self.connection_name].set(self._old_context_value)
+        current_transaction_map[self.connection_name].reset(self._token)
+        self.log.debug('context reset')
