@@ -100,7 +100,7 @@ class TransactionWrapper(SqliteClient, BaseTransactionWrapper):
         self.log = logging.getLogger('db_client')
         self._transaction_class = self.__class__
         self._finalized = False
-        self._token = None
+        self._context = None
 
     async def start(self) -> None:
         try:
@@ -109,14 +109,15 @@ class TransactionWrapper(SqliteClient, BaseTransactionWrapper):
         except sqlite3.OperationalError as exc:  # pragma: nocoverage
             raise TransactionManagementError(exc)
         self.log.debug('context set to %s', self)
-        self._token = current_transaction_map[self.connection_name].set(self)
+        self._context = current_transaction_map[self.connection_name].get()
+        current_transaction_map[self.connection_name].set(self)
 
     async def rollback(self) -> None:
         if self._finalized:
             raise TransactionManagementError('Transaction already finalised')
         self._finalized = True
         await self._connection.rollback()
-        current_transaction_map[self.connection_name].reset(self._token)
+        current_transaction_map[self.connection_name].set(self._context)
         self.log.debug('context reset')
 
     async def commit(self) -> None:
@@ -124,5 +125,5 @@ class TransactionWrapper(SqliteClient, BaseTransactionWrapper):
             raise TransactionManagementError('Transaction already finalised')
         self._finalized = True
         await self._connection.commit()
-        current_transaction_map[self.connection_name].reset(self._token)
+        current_transaction_map[self.connection_name].set(self._context)
         self.log.debug('context reset')

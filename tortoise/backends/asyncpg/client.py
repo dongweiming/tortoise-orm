@@ -125,7 +125,7 @@ class TransactionWrapper(AsyncpgDBClient, BaseTransactionWrapper):
         self._transaction_class = self.__class__
         self.connection_name = connection_name
         self.transaction = None
-        self._token = None
+        self._context = None
 
     def acquire_connection(self) -> ConnectionWrapper:
         return ConnectionWrapper(self._connection)
@@ -134,14 +134,15 @@ class TransactionWrapper(AsyncpgDBClient, BaseTransactionWrapper):
         self.transaction = self._connection.transaction()
         await self.transaction.start()
         self.log.debug('context set to %s', self)
-        self._token = current_transaction_map[self.connection_name].set(self)
+        self._context = current_transaction_map[self.connection_name].get()
+        current_transaction_map[self.connection_name].set(self)
 
     async def commit(self):
         try:
             await self.transaction.commit()
         except asyncpg.exceptions._base.InterfaceError as exc:
             raise TransactionManagementError(exc)
-        current_transaction_map[self.connection_name].reset(self._token)
+        current_transaction_map[self.connection_name].set(self._context)
         self.log.debug('context reset')
 
     async def rollback(self):
@@ -149,5 +150,5 @@ class TransactionWrapper(AsyncpgDBClient, BaseTransactionWrapper):
             await self.transaction.rollback()
         except asyncpg.exceptions._base.InterfaceError as exc:
             raise TransactionManagementError(exc)
-        current_transaction_map[self.connection_name].reset(self._token)
+        current_transaction_map[self.connection_name].set(self._context)
         self.log.debug('context reset')
