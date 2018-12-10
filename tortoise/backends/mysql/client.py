@@ -56,7 +56,8 @@ class MySQLClient(BaseDBAsyncClient):
             'port': self.port,
             'user': self.user,
             'password': self.password,
-            'db': self.database if with_db else None
+            'db': self.database if with_db else None,
+            'autocommit': True'
         }
 
         try:
