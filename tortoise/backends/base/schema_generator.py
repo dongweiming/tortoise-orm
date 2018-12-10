@@ -6,7 +6,7 @@ from tortoise.exceptions import ConfigurationError
 
 class BaseSchemaGenerator:
     TABLE_CREATE_TEMPLATE = 'CREATE TABLE "{}" ({});'
-    FIELD_TEMPLATE = '"{name}" {type} {nullable} {unique}'
+    FIELD_TEMPLATE = '"{name}" {type} {nullable} {unique} {default}'
     FK_TEMPLATE = ' REFERENCES "{table}" (id) ON DELETE {on_delete}'
     M2M_TABLE_TEMPLATE = (
         'CREATE TABLE "{table_name}" '
@@ -30,7 +30,7 @@ class BaseSchemaGenerator:
     def __init__(self, client) -> None:
         self.client = client
 
-    def _create_string(self, db_field: str, field_type: str, nullable: str, unique: str) -> str:
+    def _create_string(self, db_field: str, field_type: str, nullable: str, unique: str, default: any) -> str:
         # children can override this function to customize thier sql queries
 
         field_creation_string = self.FIELD_TEMPLATE.format(
@@ -38,6 +38,7 @@ class BaseSchemaGenerator:
             type=field_type,
             nullable=nullable,
             unique=unique,
+            default=default
         ).strip()
 
         return field_creation_string
@@ -58,6 +59,7 @@ class BaseSchemaGenerator:
                 continue
             nullable = 'NOT NULL' if not field_object.null else ''
             unique = 'UNIQUE' if field_object.unique else ''
+            default = f'DEFAULT "{field_object.default}"' if field_object.default is not None else ''
 
             field_type = self.FIELD_TYPE_MAP[field_object.__class__]
             if isinstance(field_object, fields.DecimalField):
@@ -65,7 +67,7 @@ class BaseSchemaGenerator:
             elif isinstance(field_object, fields.CharField):
                 field_type = field_type.format(field_object.max_length)
 
-            field_creation_string = self._create_string(db_field, field_type, nullable, unique)
+            field_creation_string = self._create_string(db_field, field_type, nullable, unique, default)
 
             if hasattr(field_object, 'reference') and field_object.reference:
                 field_creation_string += self.FK_TEMPLATE.format(
