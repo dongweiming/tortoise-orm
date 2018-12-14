@@ -276,6 +276,10 @@ class ModelMeta(type):
         fk_fields = set()  # type: Set[str]
         m2m_fields = set()  # type: Set[str]
 
+        for base in bases:
+            if hasattr(base, '_meta') and hasattr(base._meta, 'fields_map'):
+                attrs.update(base._meta.fields_map)
+
         if 'id' not in attrs:
             attrs['id'] = fields.IntField(pk=True)
 
