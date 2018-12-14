@@ -7,7 +7,7 @@ class MySQLSchemaGenerator(BaseSchemaGenerator):
         super().__init__(*args, **kwargs)
 
         self.TABLE_CREATE_TEMPLATE = 'CREATE TABLE `{}` ({});'
-        self.FIELD_TEMPLATE = '`{name}` {type} {nullable} {unique}'
+        self.FIELD_TEMPLATE = '`{name}` {type} {nullable} {unique} {default}'
         self.FK_TEMPLATE = ' REFERENCES `{table}` (`id`) ON DELETE {on_delete}'
         self.M2M_TABLE_TEMPLATE = (
             'CREATE TABLE `{table_name}` '

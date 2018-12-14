@@ -55,11 +55,17 @@ class BaseSchemaGenerator:
         for field_name, db_field in model._meta.fields_db_projection.items():
             field_object = model._meta.fields_map[field_name]
             if isinstance(field_object, fields.IntField) and field_object.pk:
-                fields_to_create.append(self._get_primary_key_create_string(field_name))
+                fields_to_create.insert(0, self._get_primary_key_create_string(field_name))
                 continue
             nullable = 'NOT NULL' if not field_object.null else ''
             unique = 'UNIQUE' if field_object.unique else ''
-            default = f'DEFAULT "{field_object.default}"' if field_object.default is not None else ''
+            default = field_object.default
+            if default is not None:
+                if isinstance(field_object.default, bool):
+                    default = int(default)
+                default = f'DEFAULT "{default}"'
+            else:
+                default = ''
 
             field_type = self.FIELD_TYPE_MAP[field_object.__class__]
             if isinstance(field_object, fields.DecimalField):
