@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from functools import wraps
 from typing import List, Optional, SupportsInt  # noqa
@@ -6,8 +7,8 @@ import aiomysql
 import pymysql
 from pypika import MySQLQuery
 
-from tortoise.backends.base.client import (BaseDBAsyncClient, BaseTransactionWrapper,
-                                           ConnectionWrapper)
+from tortoise.backends.base.client import (BaseDBAsyncClient,
+                                           BaseTransactionWrapper)
 from tortoise.backends.mysql.executor import MySQLExecutor
 from tortoise.backends.mysql.schema_generator import MySQLSchemaGenerator
 from tortoise.exceptions import (DBConnectionError, IntegrityError, OperationalError,
@@ -44,13 +45,16 @@ class MySQLClient(BaseDBAsyncClient):
         self.host = host
         self.port = int(port)  # make sure port is int type
 
-        self._connection = None  # Type: Optional[aiomysql.Connection]
+        self._pool = None
 
         self._transaction_class = type(
             'TransactionWrapper', (TransactionWrapper, self.__class__), {}
         )
 
     async def create_connection(self, with_db: bool) -> None:
+        return await self.create_pool(with_db)
+
+    async def create_pool(self, with_db: bool) -> None:
         template = {
             'host': self.host,
             'port': self.port,
@@ -59,12 +63,14 @@ class MySQLClient(BaseDBAsyncClient):
             'db': self.database if with_db else None,
             'autocommit': True
         }
+        loop = asyncio.get_event_loop()
 
         try:
-            self._connection = await aiomysql.connect(**template)
+            self._pool = await aiomysql.create_pool(pool_recycle=300,
+                                                    loop=loop, **template)
             self.log.debug(
-                'Created connection %s with params: user=%s database=%s host=%s port=%s',
-                self._connection, self.user, self.database, self.host, self.port
+                'Created pool %s with params: user=%s database=%s host=%s port=%s',
+                self._pool, self.user, self.database, self.host, self.port
             )
         except pymysql.err.OperationalError:
             raise DBConnectionError(
@@ -75,31 +81,29 @@ class MySQLClient(BaseDBAsyncClient):
             )
 
     async def close(self) -> None:
-        if self._connection:  # pragma: nobranch
-            self._connection.close()
+        if self._pool:  # pragma: nobranch
+            self._pool.close()
+            await self._pool.wait_closed()
             self.log.debug(
-                'Closed connection %s with params: user=%s database=%s host=%s port=%s',
-                self._connection, self.user, self.database, self.host, self.port
+                'Closed pool %s with params: user=%s database=%s host=%s port=%s',
+                self._pool, self.user, self.database, self.host, self.port
             )
-            self._connection = None
+            self._pool = None
 
     async def db_create(self) -> None:
-        await self.create_connection(with_db=False)
+        await self.create_pool(with_db=False)
         await self.execute_script(
             'CREATE DATABASE {}'.format(self.database)
         )
         await self.close()
 
     async def db_delete(self) -> None:
-        await self.create_connection(with_db=False)
+        await self.create_pool(with_db=False)
         try:
             await self.execute_script('DROP DATABASE {}'.format(self.database))
         except pymysql.err.DatabaseError:  # pragma: nocoverage
             pass
         await self.close()
-
-    def acquire_connection(self) -> ConnectionWrapper:
-        return ConnectionWrapper(self._connection)
 
     def _in_transaction(self):
         return self._transaction_class(self.connection_name, self._connection)
@@ -107,7 +111,7 @@ class MySQLClient(BaseDBAsyncClient):
     @translate_exceptions
     async def execute_insert(self, query: str, values: list) -> int:
         self.log.debug('%s: %s', query, values)
-        async with self.acquire_connection() as connection:
+        with (await self._pool) as connection:
             async with connection.cursor() as cursor:
                 # TODO: Use prepared statement, and cache it
                 await cursor.execute(query, values)
@@ -116,7 +120,7 @@ class MySQLClient(BaseDBAsyncClient):
     @translate_exceptions
     async def execute_query(self, query: str) -> List[aiomysql.DictCursor]:
         self.log.debug(query)
-        async with self.acquire_connection() as connection:
+        with (await self._pool) as connection:
             async with connection.cursor(aiomysql.DictCursor) as cursor:
                 await cursor.execute(query)
                 return await cursor.fetchall()
@@ -124,7 +128,7 @@ class MySQLClient(BaseDBAsyncClient):
     @translate_exceptions
     async def execute_script(self, query: str) -> None:
         self.log.debug(query)
-        async with self.acquire_connection() as connection:
+        with (await self._pool) as connection:
             async with connection.cursor() as cursor:
                 await cursor.execute(query)
 
