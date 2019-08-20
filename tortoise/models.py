@@ -381,7 +381,11 @@ class Model(metaclass=ModelMeta):
                     raise ValueError('{} is non nullable field, but null was passed'.format(key))
                 setattr(self, key, field_object.to_python_value(value))
             elif key in meta.db_fields:
-                setattr(self, meta.fields_db_projection_reverse[key], value)
+                key = meta.fields_db_projection_reverse[key]
+                if key in meta.fields_map:
+                    field_object = meta.fields_map[key]
+                    value = field_object.to_python_value(value)
+                setattr(self, key, value)
             elif key in meta.backward_fk_fields:
                 raise ConfigurationError(
                     'You can\'t set backward relations through init, change related model instead'
