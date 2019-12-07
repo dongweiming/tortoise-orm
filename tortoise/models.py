@@ -365,6 +365,8 @@ class ModelMeta(type):
         inherited_attrs: dict = {}
         for base in bases:
             __search_for_field_attributes(base, inherited_attrs)
+            if hasattr(base, '_meta') and hasattr(base._meta, 'fields_map'):
+                attrs.update(base._meta.fields_map)
         if inherited_attrs:
             # Ensure that the inherited fields are before the defined ones.
             attrs = {**inherited_attrs, **attrs}

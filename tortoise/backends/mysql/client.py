@@ -5,6 +5,7 @@ from typing import List, Optional, SupportsInt, Union
 import aiomysql
 import pymysql
 from pypika import MySQLQuery
+from pymysql.charset import _charsets
 
 from tortoise.backends.base.client import (
     BaseDBAsyncClient,
@@ -24,6 +25,8 @@ from tortoise.exceptions import (
     OperationalError,
     TransactionManagementError,
 )
+
+CHARSET_NAMES = set([c.name for c in _charsets._by_id.values()])
 
 
 def translate_exceptions(func):
@@ -74,6 +77,7 @@ class MySQLClient(BaseDBAsyncClient):
         self._template: dict = {}
         self._pool: Optional[aiomysql.Pool] = None
         self._connection = None
+        assert self.charset in CHARSET_NAMES
 
     async def create_connection(self, with_db: bool) -> None:
         self._template = {
