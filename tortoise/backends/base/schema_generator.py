@@ -14,7 +14,7 @@ logger = logging.getLogger("tortoise")
 
 class BaseSchemaGenerator:
     TABLE_CREATE_TEMPLATE = 'CREATE TABLE {exists}"{table_name}" ({fields}){extra}{comment};'
-    FIELD_TEMPLATE = '"{name}" {type} {nullable} {unique}{primary}{comment}'
+    FIELD_TEMPLATE = '"{name}" {type} {nullable} {unique}{default}{primary}{comment}'
     INDEX_CREATE_TEMPLATE = 'CREATE INDEX {exists}"{index_name}" ON "{table_name}" ({fields});'
     UNIQUE_CONSTRAINT_CREATE_TEMPLATE = 'CONSTRAINT "{index_name}" UNIQUE ({fields})'
     FK_TEMPLATE = ' REFERENCES "{table}" ("{field}") ON DELETE {on_delete}{comment}'
@@ -47,7 +47,8 @@ class BaseSchemaGenerator:
         self.client = client
 
     def _create_string(
-        self, db_field: str, field_type: str, nullable: str, unique: str, is_pk: bool, comment: str
+        self, db_field: str, field_type: str, nullable: str, unique: str, is_pk: bool,
+        comment: str, default: any
     ) -> str:
         # children can override this function to customize their sql queries
 
@@ -56,6 +57,7 @@ class BaseSchemaGenerator:
             type=field_type,
             nullable=nullable,
             unique=unique,
+            default=default,
             comment=comment if self.client.capabilities.inline_comment else "",
             primary=" PRIMARY KEY" if is_pk else "",
         ).strip()
@@ -193,6 +195,7 @@ class BaseSchemaGenerator:
 
             nullable = "NOT NULL" if not field_object.null else ""
             unique = "UNIQUE" if field_object.unique else ""
+            default = f' DEFAULT "{field_object.default}"' if field_object.default is not None else ""
 
             if hasattr(field_object, "reference") and field_object.reference:
                 comment = (
@@ -211,6 +214,7 @@ class BaseSchemaGenerator:
                     unique=unique,
                     is_pk=field_object.pk,
                     comment="",
+                    default=default,
                 ) + self._create_fk_string(
                     constraint_name=self._generate_fk_name(
                         model._meta.table,
@@ -233,6 +237,7 @@ class BaseSchemaGenerator:
                     unique=unique,
                     is_pk=field_object.pk,
                     comment=comment,
+                    default=default,
                 )
 
             fields_to_create.append(field_creation_string)

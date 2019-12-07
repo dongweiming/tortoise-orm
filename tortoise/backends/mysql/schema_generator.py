@@ -8,7 +8,7 @@ class MySQLSchemaGenerator(BaseSchemaGenerator):
     TABLE_CREATE_TEMPLATE = "CREATE TABLE {exists}`{table_name}` ({fields}){extra}{comment};"
     INDEX_CREATE_TEMPLATE = "KEY `{index_name}` ({fields})"
     UNIQUE_CONSTRAINT_CREATE_TEMPLATE = "UNIQUE KEY `{index_name}` ({fields})"
-    FIELD_TEMPLATE = "`{name}` {type} {nullable} {unique}{primary}{comment}"
+    FIELD_TEMPLATE = "`{name}` {type} {nullable} {unique}{default}{primary}{comment}"
     FK_TEMPLATE = (
         "CONSTRAINT `{constraint_name}` FOREIGN KEY (`{db_field}`)"
         " REFERENCES `{table}` (`{field}`) ON DELETE {on_delete}"
