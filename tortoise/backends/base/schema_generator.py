@@ -1,10 +1,10 @@
 import logging
 from hashlib import sha256
-from typing import List, Optional, Set
+from typing import Any, List, Optional, Set
 
 from tortoise import fields
 from tortoise.exceptions import ConfigurationError
-from tortoise.fields import OneToOneField
+from tortoise.fields import JSONField, OneToOneField, TextField
 from tortoise.utils import get_escape_translation_table
 
 # pylint: disable=R0201
@@ -47,8 +47,14 @@ class BaseSchemaGenerator:
         self.client = client
 
     def _create_string(
-        self, db_field: str, field_type: str, nullable: str, unique: str, is_pk: bool,
-        comment: str, default: any
+        self,
+        db_field: str,
+        field_type: str,
+        nullable: str,
+        unique: str,
+        is_pk: bool,
+        comment: str,
+        default: Any,
     ) -> str:
         # children can override this function to customize their sql queries
 
@@ -170,6 +176,19 @@ class BaseSchemaGenerator:
 
         return field_type
 
+    def _generate_field_default_value(self, field_object: fields.Field) -> str:
+        if isinstance(field_object, (TextField, JSONField)):
+            # BLOB, TEXT, GEOMETRY or JSON column 'value' can't have a default value
+            return ""
+        default = field_object.default
+        if callable(default):
+            default = default()
+        return (
+            f" DEFAULT {repr(field_object.to_db_value(default, None))}"
+            if default is not None
+            else ""
+        )
+
     def _get_table_sql(self, model, safe=True) -> dict:
 
         fields_to_create = []
@@ -195,7 +214,7 @@ class BaseSchemaGenerator:
 
             nullable = "NOT NULL" if not field_object.null else ""
             unique = "UNIQUE" if field_object.unique else ""
-            default = f' DEFAULT "{field_object.default}"' if field_object.default is not None else ""
+            default = self._generate_field_default_value(field_object)
 
             if hasattr(field_object, "reference") and field_object.reference:
                 comment = (
@@ -372,5 +391,4 @@ class BaseSchemaGenerator:
         return schema_creation_string
 
     async def generate_from_string(self, creation_string: str) -> None:
-        # print(creation_string)
         await self.client.execute_script(creation_string)

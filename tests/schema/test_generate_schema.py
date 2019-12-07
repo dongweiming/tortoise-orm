@@ -353,6 +353,14 @@ class TestGenerateSchemaMySQL(TestGenerateSchema):
         self.assertRegex(sql, r".*\\n.*")
         self.assertRegex(sql, r".*it\\'s.*")
 
+    async def test_field_default_value(self):
+        await self.init_for("tests.testmodels")
+        sql = self.get_sql("subjects")
+        self.assertIn("DEFAULT ''", sql)
+        self.assertIn("DEFAULT 5", sql)
+        self.assertIn("DEFAULT False", sql)
+        self.assertNotIn("DEFAULT 'Text'", sql)
+
     async def test_schema(self):
         self.maxDiff = None
         await self.init_for("tests.schema.models_schema_create")
@@ -754,3 +762,12 @@ CREATE TABLE IF NOT EXISTS "teamevents" (
 COMMENT ON TABLE "teamevents" IS 'How participants relate';
 """.strip(),
         )
+
+    async def test_field_default_value(self):
+        await self.init_for("tests.testmodels")
+        sql = self.get_sql("subjects")
+        self.assertNotIn('DEFAULT ""', sql)
+        self.assertIn("DEFAULT 5", sql)
+        self.assertNotIn("DEFAULT ''", sql)
+        self.assertIn("DEFAULT False", sql)
+        self.assertIn("DEFAULT 'Text'", sql)

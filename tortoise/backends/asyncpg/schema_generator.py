@@ -56,3 +56,13 @@ class AsyncpgSchemaGenerator(BaseSchemaGenerator):
         if val:
             return "\n" + val
         return ""
+
+    def _generate_field_default_value(self, field_object: fields.Field) -> str:
+        if isinstance(field_object, (fields.JSONField, fields.UUIDField)):
+            return ""
+        default = field_object.default
+        if callable(default):
+            default = default()
+        if default not in (None, ""):
+            return f"DEFAULT {repr(field_object.to_db_value(default, None))}"
+        return ""

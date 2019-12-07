@@ -481,3 +481,14 @@ class SourceFields(Model):
         table = "sometable"
         unique_together = [["chars", "blip"]]
         table_description = "Source mapped fields"
+
+
+class SubjectModel(Model):
+    class Meta:
+        table = "subjects"
+
+    id = fields.IntField(pk=True)
+    title = fields.CharField(40, default="")
+    rating = fields.IntField(default=5)
+    boolean = fields.BooleanField(default=False)
+    text = fields.TextField(default="Text")
